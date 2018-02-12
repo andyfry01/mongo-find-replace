@@ -1,0 +1,27 @@
+{
+  "name": "mongo-find-replace",
+  "version": "0.0.1",
+  "description": "a package to search through mongodb document fields for regex patterns and update with new content",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andyfry01/mongo-find-replace.git"
+  },
+  "author": "andyfry01",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andyfry01/mongo-find-replace/issues"
+  },
+  "homepage": "https://github.com/andyfry01/mongo-find-replace#readme",
+  "devDependencies": {
+    "cz-conventional-changelog": "^2.1.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
