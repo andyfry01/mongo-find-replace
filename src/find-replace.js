@@ -82,12 +82,18 @@ class MongoFindAndReplace {
       })
   }
 
+  go() {
+    console.log('hi!');
+
+  }
+
   find(regexPattern) {
     if (validate(regexPattern)) {
       this.regex = regexPattern
       return this
     }
-    function validate(input){
+
+    function validate(input) {
       if (input.constructor.name !== 'RegExp') {
         throw new Error('Invalid input: #find takes a regular expression as an argument')
         return false
@@ -97,14 +103,30 @@ class MongoFindAndReplace {
   }
 
   andReplaceWith(replacement) {
+
     if (validate(replacement)) {
       this.replacement = replacement
-      return this
+      if (allInputsAssigned(this)) {
+        this.go()
+      }
     }
-    function validate(input){
+
+    function validate(input) {
       let validInputTypes = ['string', 'number', 'boolean']
       if (validInputTypes.indexOf(typeof input) < 0) {
         throw new Error('Invalid input: #andReplaceWith takes a string, number, or boolean as input')
+        return false
+      }
+      return true
+    }
+
+    function allInputsAssigned(that) {
+      if (that.replacement === undefined) {
+        throw new Error('No replacement specified')
+        return false
+      }
+      if (that.regex === undefined) {
+        throw new Error('No regex pattern specified')
         return false
       }
       return true
