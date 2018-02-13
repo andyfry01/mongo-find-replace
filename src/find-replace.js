@@ -4,41 +4,44 @@ const util = require('util')
 
 class MongoFindAndReplace {
   constructor(config) {
-    if (this.validateConfigObject(config)) {
+
+    if (validate(config)) {
       this.config = config
       this.regex = undefined
       this.replacement = undefined
     }
-  }
 
-  validateConfigObject(config){
-    // check for no config
-    if (!config) {
-      throw new Error(' Looks like you didn\'t configure the MongoFR. \n Please pass in a config object. \n See docs reference: (doc reference)')
-      return false
+    function validate(config) {
+
+      // check for no config
+      if (!config) {
+        throw new Error(' Looks like you didn\'t configure the MongoFR. \n Please pass in a config object. \n See docs reference: (doc reference)')
+        return false
+      }
+
+      // check for valid config props
+      let requiredConfigProps = ['dbUrl', 'dbName', 'collections']
+      let optionalConfigProps = ['auth']
+      let validConfigProperties = requiredConfigProps.concat(optionalConfigProps)
+      let configProperties = Object.keys(config)
+      configProperties.forEach(prop => {
+        if (validConfigProperties.indexOf(prop) < 0) {
+          throw new Error(`${prop} is an invalid config property`)
+          return false
+        }
+      })
+
+      //check for missing config props
+      requiredConfigProps.forEach(prop => {
+        if (configProperties.indexOf(prop) < 0) {
+          throw new Error(`${prop} is a required config property`)
+          return false
+        }
+      })
+
+      // if validations pass, return true
+      return true
     }
-    // check for valid config props
-    let requiredConfigProps = ['dbUrl', 'dbName', 'collections']
-    let optionalConfigProps = ['auth']
-    let validConfigProperties = requiredConfigProps.concat(optionalConfigProps)
-    let configProperties = Object.keys(config)
-    configProperties.forEach(prop => {
-      if (validConfigProperties.indexOf(prop) < 0) {
-        throw new Error(`${prop} is an invalid config property`)
-        return false
-      }
-    })
-
-    //check for missing config props
-    requiredConfigProps.forEach(prop => {
-      if (configProperties.indexOf(prop) < 0) {
-        throw new Error(`${prop} is a required config property`)
-        return false
-      }
-    })
-
-    // if validations pass, return true
-    return true
   }
 
   getConnection(url, dbName) {
