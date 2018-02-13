@@ -7,6 +7,7 @@ const MongoClient = mongodb.MongoClient
 // Testing utils
 const _ = require('lodash')
 const chai = require('chai')
+const sinon = require('sinon')
 const expect = chai.expect
 const assert = chai.assert
 
@@ -177,7 +178,16 @@ describe('MongoDB find and replace', function() {
         assert.equal(actual, expected)        
       })
     })
+    describe('#go', () => {
+      it('should exist', () => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const expected = 'function'
+        const actual = typeof MongoFR.go
+        assert.equal(actual, expected)
+      }) 
+    })
   })
+
   describe('API', () => {
     describe('#find', () => {
       it('should be chainable (returns this)', () => {
@@ -218,14 +228,24 @@ describe('MongoDB find and replace', function() {
         assert.throws(fxnError, Error, expectedError)
         assert.throws(arrayError, Error, expectedError)
         assert.throws(objectError, Error, expectedError)
-
       })
       it('should set its input as the replacement prop on the MongoFR instance', () => {
         const MongoFR = new MongoFindAndReplace(validConfigObject)
-        MongoFR.andReplaceWith('valid input')
+        MongoFR.find(/test/).andReplaceWith('valid input')
         const actual = MongoFR.replacement
         const expected = 'valid input'
         assert.equal(actual, expected)
+      })
+      it('should call the #go method', () => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const spy = sinon.spy(MongoFR, 'go')
+        MongoFR.find(/test/).andReplaceWith('test')
+        const actual = spy.callCount
+        const expected = 1
+        assert.equal(actual, expected)
+      })
+      it('should not call go if this.regex is undefined', () => {
+
       })
     })
   })
