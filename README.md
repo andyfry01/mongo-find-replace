@@ -42,8 +42,8 @@ import mongo-find-replace from monog-find-replace;
 ```javascript 
 
 const MongoFR = new mongo-find-replace({
-  dbUrl: 'mongodb://localhost:27017';
-  db: 'example_db';
+  dbUrl: 'mongodb://localhost:27017',
+  dbName: 'example_db',
   collections: ['example_collection']  // or for multiple collections: ['coll1, coll2', ...]
 });
 
