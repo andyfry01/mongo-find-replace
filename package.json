@@ -4,7 +4,9 @@
   "description": "a package to search through mongodb document fields for regex patterns and update with new content",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test"
+    "test": "mocha ./test",
+    "test:watch": "mocha ./test --watch",
+    "lint": "eslint"
   },
   "repository": {
     "type": "git",
@@ -17,11 +19,21 @@
   },
   "homepage": "https://github.com/andyfry01/mongo-find-replace#readme",
   "devDependencies": {
-    "cz-conventional-changelog": "^2.1.0"
+    "cz-conventional-changelog": "^2.1.0",
+    "eslint": "^4.17.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0"
   },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "chai": "^4.1.2",
+    "colors": "^1.1.2",
+    "lodash": "^4.17.5",
+    "mocha": "^5.0.0",
+    "mongodb": "^3.0.2"
   }
 }
