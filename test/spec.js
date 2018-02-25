@@ -160,7 +160,6 @@ describe('MongoDB find and replace', function() {
         const actual = MongoFR.connection.constructor.name
         const expected = 'MongoClient'
         assert.equal(actual, expected)
-        closeConnection(MongoFR.connection)
       })
       it('should set a DB as this.db on the MongoFR', async() => {
         const MongoFR = new MongoFindAndReplace(workingConfigObject)
@@ -168,7 +167,6 @@ describe('MongoDB find and replace', function() {
         const actual = MongoFR.db.constructor.name
         const expected = 'Db'
         assert.equal(actual, expected)
-        closeConnection(MongoFR.connection)
       })
     })
 
@@ -187,7 +185,6 @@ describe('MongoDB find and replace', function() {
         const actual = 'test1';
         const expected = testCollections[0]
         assert.equal(actual, expected)
-        closeConnection(MongoFR.connection)
       })
     })
 
@@ -223,7 +220,6 @@ describe('MongoDB find and replace', function() {
         const actual = spy.callCount
         const expected = 1
         assert.equal(actual, expected)
-        closeConnection(MongoFR.connection)
       })
       it('should call #getCollection at least once', (done) => {
         let configObject = Object.assign({}, workingConfigObject, {collections: ['test1']})
@@ -239,8 +235,7 @@ describe('MongoDB find and replace', function() {
           const expected = 1
           assert.equal(actual, expected)
           done();
-        }, 300);
-        closeConnection(MongoFR.connection)
+        }, 500);
       })
       it('should call #getCollection for each collection in config object', (done) => {
         const MongoFR = new MongoFindAndReplace(workingConfigObject)
@@ -251,19 +246,26 @@ describe('MongoDB find and replace', function() {
           const expected = workingConfigObject.collections.length // 3
           assert.equal(actual, expected)
           done();
-        }, 300);
-        closeConnection(MongoFR.connection)
+        }, 200);
       }) 
-      it('should call #processDocFields', (done) => {
+      it('should successfully update documents according to input', (done) => {
         const MongoFR = new MongoFindAndReplace(workingConfigObject)
-        const spy = sinon.spy(MongoFR, 'processDocFields')
         MongoFR.find(regex.newLineChar).andReplaceWith('')
         setTimeout(() => {
-          const actual = spy.callCount
-          const expected = 1
-          assert.isAbove(actual, expected)
+          MongoClient.connect(`${dbUrl}`, (err, connection) => {
+            testCollections.forEach(collectionName => {
+              connection.db(dbName).collection(collectionName).find({}, (err, docs) => {
+                docs.forEach((doc, index) => {
+                  delete doc._id
+                  let actual = _.isEqual(doc, testDocs.withoutNewLines[index])
+                  let expected = true
+                  assert.equal(actual, expected)
+                })
+              })
+            })
+          })
           done();
-        }, 500);
+        }, 200);
       })
     })
   })
