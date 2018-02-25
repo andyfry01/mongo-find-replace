@@ -30,7 +30,7 @@ const regex = {
 
 let dbConnections = [];
 
-function connectToDB(done) {
+function createAndPopulateTestDB(done) {
   MongoClient.connect(`${dbUrl}`, (err, connection) => {
     if (err) {
       if (err.name === 'MongoNetworkError') {
@@ -40,15 +40,15 @@ function connectToDB(done) {
     }
     dbConnections.push(connection)
     const db = connection.db(testDB)
-    testCollections.forEach(testCollections => {
-      if (!db.collection(testCollections).find({})) {
-        db.createCollection(testCollections)
-        testDocs.withNewLines.forEach(testDoc => {
-          db.collection(testCollections).insert(testDoc)
-        })
-        done()
+    testCollections.forEach(testCollection => {
+      if (!db.collection(testCollection).find({})) { 
+        db.createCollection(testCollection)
       }
+      testDocs.withNewLines.forEach(testDoc => {
+        db.collection(testCollection).insert(testDoc)
+      })
     })
+    connection.close()
     done()
   })
 }
@@ -56,16 +56,31 @@ function connectToDB(done) {
 function dropDBAndCloseConnection(done) {
   dbConnections.forEach(connection => {
     connection.db(testDB).dropDatabase(() => {
-      connection.close()
+      closeConnection(connection)
     })
   })
   done()
+}
+
+function closeConnection(connection, next) {
+  // setTimeout(() => { 
+  //   connection.close()
+  //   if (next) {
+  //     next()
+  //   }
+  // }, 300)
 }
 
 const validConfigObject = {
   dbUrl: 'test',
   dbName: 'test',
   collections: ['test']
+}
+
+const workingConfigObject = {
+  dbUrl: dbUrl,
+  dbName: testDB,
+  collections: testCollections
 }
 
 
