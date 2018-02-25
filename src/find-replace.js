@@ -39,7 +39,7 @@ class MongoFindAndReplace {
       // if validations pass, return true
       return true
     }
-    
+
     if (validate(config)) {
       this.config = config
       this.regex = undefined
@@ -63,8 +63,6 @@ class MongoFindAndReplace {
   }
 
   closeConnection() { 
-    // console.log('this.connection');
-    // console.log(this.connection);
     if (this.connection !== undefined) {
       this.connection.close(false, () => { 
         this.connection = undefined
@@ -77,13 +75,16 @@ class MongoFindAndReplace {
   }
 
   processDocFields(doc, regex, replacement) {
-    // console.log('am i being called?');
+    // get document keys
     let docKeys = Object.keys(doc)
+    // build new document object based on keys array
     let processedDocument = docKeys.reduce((current, next) => {
+      // don't alter _id field
       if (next === '_id') {
         current[next] = doc[next]
         return current
       }
+      // search for regex pattern in each doc field and replace if present
       current[next] = doc[next].replace(regex, replacement)
       return current
     }, {})
@@ -91,8 +92,6 @@ class MongoFindAndReplace {
   }
 
   save(docsBatch, collection) {
-    console.log('now saving');
-    // console.log(util.inspect(docsBatch, {showHidden: false, depth: null}))
     collection.bulkWrite(docsBatch, (err, result) => {
       if (err) {
         let errorMessage = err
@@ -109,15 +108,19 @@ class MongoFindAndReplace {
   }
 
   go() {
+    // first, get db connection
     this.getConnection(this.config.dbUrl, this.config.dbName)
     .then(() => {
+      // process each collection in db
       this.config.collections.forEach(collectionName => {
         let collection = this.getCollection(collectionName)
+        // find all documents in given collection
         collection.find({}).toArray((err, docs) => {
           if (err) {
             console.log(err);
             this.closeConnection()
           }
+          // build array of processed documents
           let updatedDocs = docs.map(doc => {
             let processedDoc = this.processDocFields(doc, this.regex, this.replacement)
             let updateObject = {
@@ -128,6 +131,7 @@ class MongoFindAndReplace {
             }
             return updateObject
           })
+          // send updated document batch back to db
           this.save(updatedDocs, collection)
         })
       })
@@ -136,6 +140,7 @@ class MongoFindAndReplace {
 
   find(regexPattern) {
     let validate = (input) => {
+      // check to make sure a regex was passed in as an argument
       if (input.constructor.name !== 'RegExp') {
         let errorMessage = 'Invalid input: #find takes a regular expression as an argument'
         this.handleError(errorMessage)
@@ -152,6 +157,7 @@ class MongoFindAndReplace {
 
   andReplaceWith(replacement) {
     let validate = (input) => {
+      // check for valid input types
       let validInputTypes = ['string', 'number', 'boolean']
       if (validInputTypes.indexOf(typeof input) < 0) {
         let errorMessage = 'Invalid input: #andReplaceWith takes a string, number, or boolean as input'
@@ -161,6 +167,7 @@ class MongoFindAndReplace {
       return true
     }
 
+    // check to make sure required input is present
     let allInputsAssigned = () => {
       if (this.replacement === undefined) {
         let errorMessage = 'No replacement specified'
