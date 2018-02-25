@@ -95,7 +95,7 @@ describe('MongoDB find and replace', function() {
     })
 
     it('takes a config object in its constructor', () => {
-      const MongoFR = new MongoFindAndReplace(validConfigObject)
+      const MongoFR = new MongoFindAndReplace(workingConfigObject)
       const actual = typeof MongoFR.config
       const expected = 'object'
       assert.equal(actual, expected)
@@ -132,7 +132,7 @@ describe('MongoDB find and replace', function() {
       })
 
       it('does not throw an error if passed correct config params', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const actual = typeof MongoFR.config
         const expected = 'object'
         assert.equal(actual, expected)
@@ -141,78 +141,143 @@ describe('MongoDB find and replace', function() {
   })
 
   describe('class methods', () => {
-    before(connectToDB);
-    after(dropDBAndCloseConnection);
+    before(createAndPopulateTestDB);
+    it('does stuff', () => {
+      assert.equal(1, 1)
+    })
+    // after(dropDBAndCloseConnection);
 
     describe('#getConnection', () => {
       it('exists', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const expected = 'function'
         const actual = typeof MongoFR.getConnection
         assert.equal(actual, expected)
       })
-      it('should return a mongodb database connection', async() => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+      it('should set a DB connection as this.connection on the MongoFR', async() => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const connection = await MongoFR.getConnection('mongodb://localhost:27017', testDB)
-        const actual = connection.constructor.name
+        const actual = MongoFR.connection.constructor.name
+        const expected = 'MongoClient'
+        assert.equal(actual, expected)
+        closeConnection(MongoFR.connection)
+      })
+      it('should set a DB as this.db on the MongoFR', async() => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const connection = await MongoFR.getConnection('mongodb://localhost:27017', testDB)
+        const actual = MongoFR.db.constructor.name
         const expected = 'Db'
         assert.equal(actual, expected)
+        closeConnection(MongoFR.connection)
       })
     })
 
 
     describe('#getCollection', () => {
       it('exists', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const expected = 'function'
         const actual = typeof MongoFR.getCollection
         assert.equal(actual, expected)
       })
       it('gets a collection from a DB connection', async() => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const connection = await MongoFR.getConnection('mongodb://localhost:27017', testDB)
         const collection = MongoFR.getCollection(testCollections[0], connection)
         const actual = 'test1';
         const expected = testCollections[0]
         assert.equal(actual, expected)
+        closeConnection(MongoFR.connection)
       })
     })
 
     describe('#processDocFields', () => {
       it('exists', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const expected = 'function'
         const actual = typeof MongoFR.processDocFields
         assert.equal(actual, expected)
       })
-      it('should process doc fields according to the regex pattern and replacement item', async() => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
-        const result = await MongoFR.processDocFields(testDocs.withNewLines[0], regex.newLineChar, '')
+      it('should process doc fields according to the regex pattern and replacement item', () => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const processedDoc = MongoFR.processDocFields(testDocs.withNewLines[0], regex.newLineChar, '')
+        delete processedDoc._id
+        const expectedResult = testDocs.withoutNewLines[0]
+        const actual = _.isEqual(processedDoc, expectedResult)
         const expected = true
-        const actual = _.isEqual(result, testDocs.withoutNewLines[0])
         assert.equal(actual, expected)        
       })
     })
+
     describe('#go', () => {
       it('should exist', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const expected = 'function'
         const actual = typeof MongoFR.go
         assert.equal(actual, expected)
+      })
+      it('should call #getConnection', () => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const spy = sinon.spy(MongoFR, 'getConnection')
+        MongoFR.go()
+        const actual = spy.callCount
+        const expected = 1
+        assert.equal(actual, expected)
+        closeConnection(MongoFR.connection)
+      })
+      it('should call #getCollection at least once', (done) => {
+        let configObject = Object.assign({}, workingConfigObject, {collections: ['test1']})
+        const MongoFR = new MongoFindAndReplace(configObject)
+        const spy = sinon.spy(MongoFR, 'getCollection')
+        MongoFR.go()
+        // setTimeout is not a great solution for this
+        // need some way to test whether getCollection is called
+        // within the .then of #getConnection
+        // http://bit.ly/2sRXPpY
+        setTimeout(() => {
+          const actual = spy.callCount
+          const expected = 1
+          assert.equal(actual, expected)
+          done();
+        }, 300);
+        closeConnection(MongoFR.connection)
+      })
+      it('should call #getCollection for each collection in config object', (done) => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const spy = sinon.spy(MongoFR, 'getCollection')
+        MongoFR.go()
+        setTimeout(() => {
+          const actual = spy.callCount
+          const expected = workingConfigObject.collections.length // 3
+          assert.equal(actual, expected)
+          done();
+        }, 300);
+        closeConnection(MongoFR.connection)
       }) 
+      it('should call #processDocFields', (done) => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const spy = sinon.spy(MongoFR, 'processDocFields')
+        MongoFR.find(regex.newLineChar).andReplaceWith('')
+        setTimeout(() => {
+          const actual = spy.callCount
+          const expected = 1
+          assert.isAbove(actual, expected)
+          done();
+        }, 500);
+      })
     })
   })
 
   describe('API', () => {
     describe('#find', () => {
       it('should be chainable (returns this)', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const actual = MongoFR.find(/something/).constructor.name
         const expected = 'MongoFindAndReplace'
         assert.equal(actual, expected)
       })
       it('should throw an error if passed invalid input', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         function throwsError(){
           MongoFR.find('invalid input')
         }
@@ -220,7 +285,7 @@ describe('MongoDB find and replace', function() {
         assert.throws(throwsError, Error, expectedError)
       })
       it('should set its input as the regex prop on the MongoFR instance', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         MongoFR.find(/something/)
         const actual = _.isEqual(MongoFR.regex, /something/)
         const expected = true
@@ -229,7 +294,7 @@ describe('MongoDB find and replace', function() {
     })
     describe('#andReplaceWith', () => {
       it('should throw an error if passed invalid input', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         function fxnError(){
           MongoFR.andReplaceWith(() => { console.log('invalid input') })
         }
@@ -245,22 +310,30 @@ describe('MongoDB find and replace', function() {
         assert.throws(objectError, Error, expectedError)
       })
       it('should set its input as the replacement prop on the MongoFR instance', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         MongoFR.find(/test/).andReplaceWith('valid input')
         const actual = MongoFR.replacement
         const expected = 'valid input'
         assert.equal(actual, expected)
       })
-      it('should call the #go method', () => {
-        const MongoFR = new MongoFindAndReplace(validConfigObject)
+      it('should not call go if this.regex is undefined', () => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
+        const spy = sinon.spy(MongoFR, 'go')
+        function throwsError(){
+          MongoFR.andReplaceWith('test')
+        }
+        const actual = spy.callCount
+        const expected = 0
+        assert.throws(throwsError, Error)
+        assert.equal(actual, expected)
+      })  
+      it('should call the #go method if all inputs have been specified correctly', () => {
+        const MongoFR = new MongoFindAndReplace(workingConfigObject)
         const spy = sinon.spy(MongoFR, 'go')
         MongoFR.find(/test/).andReplaceWith('test')
         const actual = spy.callCount
         const expected = 1
         assert.equal(actual, expected)
-      })
-      it('should not call go if this.regex is undefined', () => {
-
       })
     })
   })
