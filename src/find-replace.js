@@ -98,12 +98,12 @@ class MongoFindAndReplace {
         this.handleError(errorMessage)
       } else {
         if (result.ok === 1) {
+          this.closeConnection()
         } else {
           let errorMessage = result.getWriteErrors()
           this.handleError(errorMessage)
         }
       }
-      this.closeConnection()
     })
   }
 
