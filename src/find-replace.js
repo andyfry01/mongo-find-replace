@@ -16,7 +16,8 @@ class MongoFindAndReplace {
 
       // check for valid config props
       let requiredConfigProps = ['dbUrl', 'dbName', 'collections']
-      let optionalConfigProps = ['auth']
+      // TBD feature
+      let optionalConfigProps = []
       let validConfigProperties = requiredConfigProps.concat(optionalConfigProps)
       let configProperties = Object.keys(config)
       configProperties.forEach(prop => {
