@@ -1,5 +1,3 @@
-module.exports = {
-  sayHi: function(){
-    console.log('hello npm!');
-  }
-}
+const MongoFindReplace = require('./src/find-replace.js')
+
+module.exports = MongoFindReplace
