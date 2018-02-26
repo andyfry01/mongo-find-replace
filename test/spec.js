@@ -63,12 +63,12 @@ function dropDBAndCloseConnection(done) {
 }
 
 function closeConnection(connection, next) {
-  // setTimeout(() => { 
-  //   connection.close()
-  //   if (next) {
-  //     next()
-  //   }
-  // }, 300)
+  setTimeout(() => { 
+    connection.close()
+    if (next) {
+      next()
+    }
+  }, 300)
 }
 
 const validConfigObject = {
@@ -81,6 +81,12 @@ const workingConfigObject = {
   dbUrl: dbUrl,
   dbName: testDB,
   collections: testCollections
+}
+
+const nonWorkingConfigObject = {
+  dbUrl: 'mongodb://localhost:9999',
+  dbName: 'nonExistingDatabase',
+  collections: ['nonExistingCollection']
 }
 
 
@@ -142,10 +148,6 @@ describe('MongoDB find and replace', function() {
 
   describe('class methods', () => {
     before(createAndPopulateTestDB);
-    it('does stuff', () => {
-      assert.equal(1, 1)
-    })
-    // after(dropDBAndCloseConnection);
 
     describe('#getConnection', () => {
       it('exists', () => {
@@ -169,7 +171,6 @@ describe('MongoDB find and replace', function() {
         assert.equal(actual, expected)
       })
     })
-
 
     describe('#getCollection', () => {
       it('exists', () => {
@@ -266,6 +267,52 @@ describe('MongoDB find and replace', function() {
           })
           done();
         }, 200);
+      })
+    })
+
+    describe('#validateConnection', () => {
+      it('should exist', () => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const expected = 'function'
+        const actual = typeof MongoFR.validateConnection
+        assert.equal(actual, expected)
+      })
+      it('should throw an error if the config obj dbUrl is invalid', (done) => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        MongoFR.validateConnection(nonWorkingConfigObject)
+        .catch(error => {
+          let actual = error.indexOf('failed to connect to server')
+          let expected = -1
+          assert.isAbove(actual, expected)
+        }).finally(done())
+      })
+      it('should throw an error if the config obj database doesn\'t exist', (done) => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const configWithNonWorkingDb = {
+          dbUrl: 'mongodb://localhost:27017',
+          dbName: 'nonExistingDatabase',
+          collections: ['etc']
+        }
+        MongoFR.validateConnection(configWithNonWorkingDb)
+        .catch(error => {
+          const actual = error.indexOf('It looks like you\'ve attempted to connect to a non-existing database')
+          const expected = -1
+          assert.isAbove(actual, expected)
+        }).finally(done())
+      })
+      it('should throw an error if the config obj collections don\'t exist in the specified DB', (done) => {
+        const MongoFR = new MongoFindAndReplace(validConfigObject)
+        const configWithNonExistingConnections = {
+          dbUrl: 'mongodb://localhost:27017',
+          dbName: 'mongodb_mass_doc_updater',
+          collections: ['i_dont_exist', 'nor_do_i', 'me_neither']
+        }
+        MongoFR.validateConnection(configWithNonExistingConnections)
+        .catch(error => {
+          const actual = error.indexOf('It looks like you\'ve passed in collections into your config object that don\'t exist in the specified database')
+          const expected = -1
+          assert.isAbove(actual, expected)
+        }).finally(done())
       })
     })
   })
