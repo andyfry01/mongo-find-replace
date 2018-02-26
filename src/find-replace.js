@@ -49,6 +49,87 @@ class MongoFindAndReplace {
     }
   }
 
+  validateConnection(configObj) {
+
+    const validateDBName = (connection) => {
+      return new Promise((resolve, reject) => {
+        connection.db('test').admin().listDatabases((err, result) => {
+          const dbs = result.databases
+          const test = dbs.filter(db => db.name === configObj.dbName)
+          if (test.length < 1) {
+            const errorMessage = `It looks like you\'ve attempted to connect to a non-existing database. Check the dbName field in your config object, currently set to: ${configObj.dbName}.`
+            reject(errorMessage)
+          } else {
+            resolve()
+          }
+        })
+      })
+    }
+
+    const validateCollections = (connection) => {
+      return new Promise((resolve, reject) => {
+        connection.db(configObj.dbName).listCollections().toArray((err, dbCollections) => {
+          dbCollections = dbCollections.map(collection => collection.name)
+          const dbCollectionInfo = configObj.collections.reduce((acc, cur) => {
+            if (dbCollections.indexOf(cur) > -1) {
+              acc.validCollections.push(cur)
+              return acc
+            } else {
+              acc.invalidCollections.push(cur)
+              return acc
+            }
+          }, {
+            validCollections: [],
+            invalidCollections: []
+          })
+          if (dbCollectionInfo.invalidCollections.length === 0) {
+            resolve()
+          }
+          const invalidCollections = dbCollectionInfo.invalidCollections.reduce((string, collectionName, index) => {
+            if (index === 0) {
+              return `${collectionName}`
+            }
+            return `${string}, ${collectionName}`}, 
+            '')
+          const errorMessage = `It looks like you\'ve passed in collections into your config object that don\'t exist in the specified database. Check the following collection names for errors: ${invalidCollections}`
+          reject(errorMessage)
+        })
+      })
+    }
+
+    const validateDBUrl = (url) => {
+      return MongoClient.connect(configObj.dbUrl)
+    }
+
+    // run validation functions!
+    return new Promise((resolve, reject) => {
+      // check if URL is valid
+      validateDBUrl(configObj.dbUrl)
+      .then(connection => {
+        // check if database exists
+        validateDBName(connection)
+        .then(() => {
+          // check if all collections exist within DB
+          validateCollections(connection)
+          .then(() => {
+            resolve()
+          })
+          .catch(error => {
+            reject(error)
+          })
+        })
+        .catch(error => {
+          reject(error)
+        })
+      })
+      .catch(error => {
+        // throws error if database url is invalid
+        let errorMessage = error.message
+        reject(errorMessage)
+      })
+    })
+  }
+
   getConnection(url, dbName) {
     return new Promise((resolve, reject) => {
       MongoClient.connect(url, (err, connection) => {
@@ -108,34 +189,41 @@ class MongoFindAndReplace {
   }
 
   go() {
-    // first, get db connection
-    this.getConnection(this.config.dbUrl, this.config.dbName)
+    // validate connection config to check for errors
+    this.validateConnection(this.config)
     .then(() => {
-      // process each collection in db
-      this.config.collections.forEach(collectionName => {
-        let collection = this.getCollection(collectionName)
-        // find all documents in given collection
-        collection.find({}).toArray((err, docs) => {
-          if (err) {
-            console.log(err);
-            this.closeConnection()
-          }
-          // build array of processed documents
-          let updatedDocs = docs.map(doc => {
-            let processedDoc = this.processDocFields(doc, this.regex, this.replacement)
-            let updateObject = {
-              updateOne : {
-                "filter" : { "_id" : processedDoc._id },
-                "update" : { $set : processedDoc }
-              }
+      // if validation passes, first get db connection
+      this.getConnection(this.config.dbUrl, this.config.dbName)
+      .then(() => {
+        // process each collection in db
+        this.config.collections.forEach(collectionName => {
+          let collection = this.getCollection(collectionName)
+          // find all documents in given collection
+          collection.find({}).toArray((err, docs) => {
+            if (err) {
+              console.log(err);
+              this.closeConnection()
             }
-            return updateObject
+            // build array of processed documents
+            let updatedDocs = docs.map(doc => {
+              let processedDoc = this.processDocFields(doc, this.regex, this.replacement)
+              let updateObject = {
+                updateOne : {
+                  "filter" : { "_id" : processedDoc._id },
+                  "update" : { $set : processedDoc }
+                }
+              }
+              return updateObject
+            })
+            // send updated document batch back to db
+            this.save(updatedDocs, collection)
           })
-          // send updated document batch back to db
-          this.save(updatedDocs, collection)
         })
       })
+    }).catch(error => {
+      console.log(error)
     })
+
   }
 
   find(regexPattern) {
