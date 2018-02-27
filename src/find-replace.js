@@ -221,7 +221,6 @@ class MongoFindAndReplace {
             }
             // build array of processed documents
             let updatedDocs = docs.map(doc => {
-              console.log(`\tProcessing document ${doc._id} ...`.green);
               let processedDoc = this.processDocFields(doc, this.regex, this.replacement)
               let updateObject = {
                 updateOne : {

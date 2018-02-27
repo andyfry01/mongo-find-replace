@@ -12,7 +12,7 @@ If this describes you, then you've come to the right spot.
 
 
 ## Installation
-`npm install mongo-find-repace`
+`npm install mongo-find-repace --save`
 
 ## Caveats
 Make a backup of your data before using this tool. It will do exactly what you tell it to *every* field in *every* document, so make sure you've got your regular expressions written in such a way that you don't accidentally change something you didn't intend to change.
@@ -20,28 +20,28 @@ Make a backup of your data before using this tool. It will do exactly what you t
 From the MongoDB CLI (docs [here](https://docs.mongodb.com/manual/reference/method/db.copyDatabase/)): 
 
 ```
-db.copyDatabase('test_db', 'test_db-backup')
+db.copyDatabase('your_database', 'your_database-backup')
 ``` 
 
 ## Usage
 
-1) Import mongo-find-replace into your JS file: 
+1) Import mongo-find-replace into a JS file: 
 
 ```javascript
-const mongo-find-replace = require('mongo-find-replace');
+const MongoFindReplace = require('mongo-find-replace');
 ```
 
 or
 
 ```javascript
-import mongo-find-replace from monog-find-replace;
+import MongoFindReplace from mongo-find-replace;
 ```
 
 2) Configure mongo-find-replace. The three required config options are the url to your MongoDB database, the database name, and the collection(s) containing the documents you want to search through and edit. See below for more advanced config (e.g. auth, etc.).
 
 ```javascript 
 
-const MongoFR = new mongo-find-replace({
+const MongoFR = new MongoFindReplace({
   dbUrl: 'mongodb://localhost:27017',
   dbName: 'example_db',
   collections: ['example_collection']  // or for multiple collections: ['coll1, coll2', ...]
@@ -55,6 +55,13 @@ const MongoFR = new mongo-find-replace({
 MongoFR.find(/regex/).andReplaceWith('new string')
 ```
 
+4) Once you've got steps 1-3 done, save your file (e.g. `script.js`), start up MongoDB, backup your data, head into your command line/terminal application, cd into the directory containing `script.js`, and enter: 
+
+```javascript
+node script.js
+```
+
+The script will then run, you should see console output indicating which step the script is on.
 
 ## Basic examples
 
@@ -62,7 +69,7 @@ If you want to replace instances of 'colour' with 'color' in all fields in all d
 
 ```javascript
 const mongo-find-replace = require('mongo-find-replace');
-const MongoFR = new mongo-find-replace({
+const MongoFR = new MongoFindReplace({
   dbUrl: 'mongodb://localhost:27017',
   dbName: 'example_db',
   collections: ['example_collection']  // or for multiple collections: ['coll1, coll2', ...]
