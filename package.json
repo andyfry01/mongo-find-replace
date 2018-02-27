@@ -1,6 +1,6 @@
 {
   "name": "mongo-find-replace",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a package to search through mongodb document fields for regex patterns and update with new content",
   "main": "index.js",
   "scripts": {

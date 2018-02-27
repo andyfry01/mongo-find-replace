@@ -1,4 +1,5 @@
 # Mongo Find and Replace
+[![NPM](https://nodei.co/npm/mongo-find-replace.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/mongo-find-replace/)
 
 ## About
 
