@@ -1,4 +1,5 @@
 const mongodb = require('mongodb')
+const colors = require('colors')
 const MongoClient = mongodb.MongoClient
 const util = require('util')
 
@@ -174,12 +175,17 @@ class MongoFindAndReplace {
   }
 
   save(docsBatch, collection) {
+    console.log('');
+    console.log(`Processing complete for ${collection.namespace}`.green);
+    console.log('');
+    console.log(`Saving updated documents back to DB`.yellow);
     collection.bulkWrite(docsBatch, (err, result) => {
       if (err) {
         let errorMessage = err
         this.handleError(errorMessage)
       } else {
         if (result.ok === 1) {
+          console.log(`\tDocuments in collection ${collection.namespace} saved sucessfully`.green);
           this.closeConnection()
         } else {
           let errorMessage = result.getWriteErrors()
@@ -191,13 +197,21 @@ class MongoFindAndReplace {
 
   go() {
     // validate connection config to check for errors
+    console.log('Validating config information...'.yellow)
     this.validateConnection(this.config)
     .then(() => {
+      console.log('');
+      console.log('\tValidation successful'.green);
+      console.log('');
+      console.log('Getting DB connection...'.yellow)
       // if validation passes, first get db connection
       this.getConnection(this.config.dbUrl, this.config.dbName)
       .then(() => {
+        console.log('\tConnected to DB'.green);
         // process each collection in db
         this.config.collections.forEach(collectionName => {
+          console.log('');
+          console.log(`Processing collection: ${collectionName} ...`.yellow);
           let collection = this.getCollection(collectionName)
           // find all documents in given collection
           collection.find({}).toArray((err, docs) => {
@@ -207,6 +221,7 @@ class MongoFindAndReplace {
             }
             // build array of processed documents
             let updatedDocs = docs.map(doc => {
+              console.log(`\tProcessing document ${doc._id} ...`.green);
               let processedDoc = this.processDocFields(doc, this.regex, this.replacement)
               let updateObject = {
                 updateOne : {
